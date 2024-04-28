@@ -32,7 +32,7 @@ class BooBoo
     /**
      * @var bool Whether or not we should silence all errors.
      */
-    private bool $silenceErrors = false;
+    protected bool $silenceErrors = false;
 
     /**
      * @var bool If set to true, will throw all errors as exceptions (making them blocking)

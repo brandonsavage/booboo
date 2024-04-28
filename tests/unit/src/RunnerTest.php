@@ -26,14 +26,15 @@ class BooBooExt extends BooBoo {
         return $this->silenceErrors;
     }
 
-    public function register() {
+    public function register(): void {
         parent::register();
         $this->registered = true;
     }
 
-    public function deregister() {
+    public function deregister(): self {
         parent::deregister();
         $this->registered = false;
+        return $this;
     }
 
     protected function terminate()
