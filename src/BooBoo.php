@@ -12,39 +12,39 @@ class BooBoo
     /**
      * A constant for the error handling function.
      */
-    const ERROR_HANDLER = 'errorHandler';
+    private const ERROR_HANDLER = 'errorHandler';
 
     /**
      * A constant for the exception handler.
      */
-    const EXCEPTION_HANDLER = 'exceptionHandler';
+    private const EXCEPTION_HANDLER = 'exceptionHandler';
 
     /**
      * A constant for the shutdown handler.
      */
-    const SHUTDOWN_HANDLER = 'shutdownHandler';
+    private const SHUTDOWN_HANDLER = 'shutdownHandler';
 
     /**
      * @var array Handler stack array
      */
-    protected $handlerStack = [];
+    private array $handlerStack = [];
 
     /**
      * @var bool Whether or not we should silence all errors.
      */
-    protected $silenceErrors = false;
+    private bool $silenceErrors = false;
 
     /**
      * @var bool If set to true, will throw all errors as exceptions (making them blocking)
      */
-    protected $throwErrorsAsExceptions = false;
+    private bool $throwErrorsAsExceptions = false;
 
     /**
      * This isn't set as a default, because we can't. Set in the constructor.
      *
      * @var int
      */
-    protected $fatalErrors;
+    protected int $fatalErrors;
 
     /**
      * @param array $handlers
@@ -76,7 +76,7 @@ class BooBoo
      * @return bool
      * @throws \ErrorException
      */
-    public function errorHandler($errno, $errstr, $errfile, $errline)
+    public function errorHandler($errno, $errstr, $errfile, $errline): bool
     {
         // Only handle errors that match the error reporting level.
         if (!($errno & error_reporting())) { // bitwise operation
@@ -98,6 +98,8 @@ class BooBoo
         if ($errno & $this->fatalErrors) {
             $this->terminate();
         }
+
+        return true;
     }
 
     protected function terminate()
@@ -109,9 +111,9 @@ class BooBoo
      * An exception handler, per the documentation in PHP. This function is
      * also used for the handling of errors, even when they are non-blocking.
      *
-     * @param \Exception $e
+     * @param \Throwable $e
      */
-    public function exceptionHandler($e)
+    public function exceptionHandler(\Throwable $e): void
     {
         http_response_code(500);
 
@@ -153,7 +155,7 @@ class BooBoo
      * error handling code is effective.
      *
      */
-    public function register()
+    public function register(): void
     {
         set_error_handler([$this, self::ERROR_HANDLER]);
         set_exception_handler([$this, self::EXCEPTION_HANDLER]);
@@ -166,7 +168,7 @@ class BooBoo
      * @param \League\BooBoo\Handler\HandlerInterface $handler
      * @return $this
      */
-    public function pushHandler(HandlerInterface $handler)
+    public function pushHandler(HandlerInterface $handler): self
     {
         $this->handlerStack[] = $handler;
         return $this;
@@ -177,7 +179,7 @@ class BooBoo
      *
      * @return \League\BooBoo\Handler\HandlerInterface|null
      */
-    public function popHandler()
+    public function popHandler(): ?HandlerInterface
     {
         return array_pop($this->handlerStack);
     }
@@ -187,7 +189,7 @@ class BooBoo
      *
      * @return array
      */
-    public function getHandlers()
+    public function getHandlers(): array
     {
         return $this->handlerStack;
     }
@@ -197,7 +199,7 @@ class BooBoo
      *
      * @return $this
      */
-    public function clearHandlers()
+    public function clearHandlers(): self
     {
         $this->handlerStack = [];
         return $this;
@@ -206,10 +208,10 @@ class BooBoo
     /**
      * Runs all the handlers registered, and returns the exception provided.
      *
-     * @param \Exception $e
-     * @return \Exception
+     * @param \Throwable $e
+     * @return \Throwable
      */
-    protected function runHandlers($e)
+    protected function runHandlers(\Throwable $e): \Throwable
     {
         /** @var \League\BooBoo\Handler\HandlerInterface $handler */
         foreach (array_reverse($this->handlerStack) as $handler) {
@@ -227,7 +229,7 @@ class BooBoo
      *
      * @param bool $bool
      */
-    public function silenceAllErrors($bool)
+    public function silenceAllErrors($bool): void
     {
         $this->silenceErrors = (bool)$bool;
     }
@@ -237,7 +239,7 @@ class BooBoo
      *
      * @return $this
      */
-    public function deregister()
+    public function deregister(): self
     {
         restore_error_handler();
         restore_exception_handler();
@@ -250,7 +252,7 @@ class BooBoo
      *
      * @param bool $bool
      */
-    public function treatErrorsAsExceptions($bool)
+    public function treatErrorsAsExceptions($bool): void
     {
         $this->throwErrorsAsExceptions = (bool)$bool;
     }

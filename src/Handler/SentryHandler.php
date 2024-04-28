@@ -7,10 +7,9 @@ use Sentry\ClientInterface;
 
 class SentryHandler implements HandlerInterface
 {
-    /**
-     * @var \Client
-     */
-    protected $client;
+    protected ClientInterface $client;
+
+    private int $minimumLogLevel;
 
     public function __construct(ClientInterface $client, $minimumLogLevel = E_ALL)
     {
