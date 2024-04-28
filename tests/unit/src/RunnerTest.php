@@ -131,9 +131,7 @@ class RunnerTest extends TestCase {
 
         // Now we fake an error
         $result = $runner->errorHandler(E_WARNING, 'warning', 'index.php', 11);
-        $this->assertNull($result); // We don't really need the assertNull, but
-                                    // we want to avoid a "risky" test. If we get
-                                    // an exception we know the test failed.
+        $this->assertTrue($result);
 
     }
 
