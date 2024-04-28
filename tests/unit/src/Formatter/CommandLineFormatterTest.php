@@ -3,7 +3,7 @@
 use \League\BooBoo\Formatter\CommandLineFormatter;
 use PHPUnit\Framework\TestCase;
 
-class CommandLineFormatterText extends TestCase
+class CommandLineFormatterTest extends TestCase
 {
     public function testHandleErrorsReturnsValidErrorMessage()
     {

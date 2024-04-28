@@ -3,7 +3,7 @@
 use League\BooBoo\Util\Inspector;
 use PHPUnit\Framework\TestCase;
 
-class InspectorText extends TestCase
+class InspectorTest extends TestCase
 {
     /**
      * @var Inspector
