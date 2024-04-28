@@ -60,15 +60,7 @@ class RunnerTest extends TestCase {
         ini_set('display_errors', true);
         $this->runner = new BooBoo([]);
 
-        $this->formatter = Mockery::mock('League\BooBoo\Formatter\AbstractFormatter');
         $this->handler = Mockery::mock('League\BooBoo\Handler\HandlerInterface');
-        $this->runner->pushFormatter($this->formatter);
-    }
-
-    public function testNoFormatterRaisesException() {
-        $this->expectException(NoFormattersRegisteredException::class);
-        $runner = new BooBoo([]);
-        $runner->register();
     }
 
     public function testHandlerMethods() {
@@ -87,47 +79,10 @@ class RunnerTest extends TestCase {
         $this->assertEmpty($runner->getHandlers());
     }
 
-    public function testFormatterMethods() {
-        $runner = new BooBoo([]);
-
-        $this->assertEmpty($runner->getFormatters());
-
-        $runner->pushFormatter(Mockery::mock('League\BooBoo\Formatter\FormatterInterface'));
-        $runner->pushFormatter(Mockery::mock('League\BooBoo\Formatter\FormatterInterface'));
-
-        $this->assertEquals(2, count($runner->getFormatters()));
-        $this->assertInstanceOf('League\BooBoo\Formatter\FormatterInterface', $runner->popFormatter());
-        $this->assertEquals(1, count($runner->getFormatters()));
-
-        $runner->clearFormatters();
-        $this->assertEmpty($runner->getFormatters());
-    }
-
-    public function testConstructorAssignsHandlersAndFormatters() {
-        $runner = new BooBoo(
-            [
-                Mockery::mock('League\BooBoo\Formatter\FormatterInterface'),
-                Mockery::mock('League\BooBoo\Formatter\FormatterInterface'),
-            ],
-            [
-                Mockery::mock('League\BooBoo\Handler\HandlerInterface'),
-            ]
-        );
-
-        $this->assertCount(2, $runner->getFormatters());
-        $this->assertCount(1, $runner->getHandlers());
-    }
 
     public function testErrorsSilencedWhenSilenceTrue() {
-        $formatter = new class implements Formatter\FormatterInterface {
-            public function format($e) { throw new \Exception; }
-            public function setErrorLimit($limit){ throw new \Exception; }
-            public function getErrorLimit() { throw new \Exception; }
-        };
-
-        $runner = new BooBoo([]);
+        $runner = new BooBoo();
         $runner->silenceAllErrors(true);
-        $runner->pushFormatter($formatter);
 
         // Now we fake an error
         $result = $runner->errorHandler(E_WARNING, 'warning', 'index.php', 11);
@@ -136,24 +91,10 @@ class RunnerTest extends TestCase {
     }
 
     public function testThrowErrorsAsExceptions() {
+        error_reporting(E_ALL);
         $this->expectException(\ErrorException::class);
         $this->runner->treatErrorsAsExceptions(true);
         $this->runner->errorHandler(E_WARNING, 'test', 'test.php', 11);
-    }
-
-    public function testFormattersFormatCode() {
-        $formatter = new class implements Formatter\FormatterInterface {
-            public static $formatCalled = 0;
-            public function format($e) { self::$formatCalled++; return null; }
-            public function setErrorLimit($limit){ throw new \Exception; }
-            public function getErrorLimit() { return E_ALL; }
-        };
-
-        $this->runner->clearFormatters();
-        $this->runner->pushFormatter($formatter);
-        $this->runner->errorHandler(E_WARNING, 'warning', 'index.php', 11);
-        $this->runner->exceptionHandler(new \Exception);
-        $this->assertEquals(2, $formatter::$formatCalled);
     }
 
     public function testErrorReportingOffSilencesErrors() {
@@ -183,32 +124,14 @@ class RunnerTest extends TestCase {
     }
 
     public function testRegisterAndDeregister() {
-        $formatter = Mockery::mock('League\BooBoo\Formatter\FormatterInterface');
-        $formatter->shouldIgnoreMissing();
 
-        $runner = new BooBooExt([$formatter]);
+        $runner = new BooBooExt();
 
         $runner->register();
         $this->assertTrue($runner->registered);
 
         $runner->deregister();
         $this->assertFalse($runner->registered);
-    }
-
-    public function testErrorPageHandler() {
-        $formatter = new class implements Formatter\FormatterInterface {
-            public static $formatCalled = 0;
-            public function format($e) { self::$formatCalled++; return null; }
-            public function setErrorLimit($limit){ throw new \Exception; }
-            public function getErrorLimit() { return E_ALL; }
-        };
-
-        $this->runner->setErrorPageFormatter($formatter);
-        $this->runner->silenceAllErrors(true);
-
-        $this->runner->exceptionHandler(new \Exception);
-
-        $this->assertEquals(1, $formatter::$formatCalled);
     }
 
     public function testHandlersAreRun()
@@ -222,39 +145,6 @@ class RunnerTest extends TestCase {
 
         $runner->pushHandler($handler);
         $runner->exceptionHandler(new \Exception);
-    }
-
-    public function testShutdownHandler()
-    {
-        $formatter = new class implements Formatter\FormatterInterface {
-            public static $formatCalled = 0;
-            public function format($e) { self::$formatCalled++; return null; }
-            public function setErrorLimit($limit){ throw new \Exception; }
-            public function getErrorLimit() { return E_ERROR; }
-        };
-
-        $runner = new BooBooExt([$formatter]);
-        $runner->shutdownHandler();
-
-        $this->assertEquals(1, $formatter::$formatCalled);
-    }
-
-    public function testShutdownHandlerIgnoresNonfatal()
-    {
-        BooBooExt::$LAST_ERROR = E_WARNING;
-        $formatter = new class implements Formatter\FormatterInterface {
-            public static $formatCalled = 0;
-            public function format($e) { self::$formatCalled++; return null; }
-            public function setErrorLimit($limit){ throw new \Exception; }
-            public function getErrorLimit() { return E_ERROR; }
-        };
-
-        $runner = new BooBooExt([$formatter]);
-        $runner->shutdownHandler();
-
-        BooBooExt::$LAST_ERROR = E_ERROR;
-
-        $this->assertEquals(0, $formatter::$formatCalled);
     }
 
     protected function tearDown() : void

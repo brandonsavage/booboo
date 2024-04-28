@@ -30,19 +30,9 @@ class BooBoo
     protected $handlerStack = [];
 
     /**
-     * @var array Formatter stack array
-     */
-    protected $formatterStack = [];
-
-    /**
      * @var bool Whether or not we should silence all errors.
      */
     protected $silenceErrors = false;
-
-    /**
-     * @var An error page formatter, for creating pretty error pages in production
-     */
-    protected $errorPage;
 
     /**
      * @var bool If set to true, will throw all errors as exceptions (making them blocking)
@@ -57,18 +47,13 @@ class BooBoo
     protected $fatalErrors;
 
     /**
-     * @param array $formatters
      * @param array $handlers
      */
-    public function __construct(array $formatters, array $handlers = [])
+    public function __construct(array $handlers = [])
     {
         // Let's honor the INI settings.
         if (ini_get('display_errors') == false) {
             $this->silenceAllErrors(true);
-        }
-
-        foreach ($formatters as $formatter) {
-            $this->pushFormatter($formatter);
         }
 
         foreach ($handlers as $handler) {
@@ -132,11 +117,6 @@ class BooBoo
 
         $e = $this->runHandlers($e);
 
-        if (!$this->silenceErrors) {
-            $formattedResponse = $this->runFormatters($e);
-            print $formattedResponse;
-        }
-
         if ($this->silenceErrors &&
             isset($this->errorPage) &&
             !($e instanceof ErrorException)
@@ -172,19 +152,9 @@ class BooBoo
      * Registers the error handlers, and is required to be called before the
      * error handling code is effective.
      *
-     * @throws \League\BooBoo\Exception\NoFormattersRegisteredException
      */
     public function register()
     {
-        if (empty($this->formatterStack)) {
-            throw new NoFormattersRegisteredException(
-                'No formatters were registered before attempting to register the error handler'
-            );
-        }
-
-        // We want the formatters we register to handle the errors.
-        ini_set('display_errors', false);
-
         set_error_handler([$this, self::ERROR_HANDLER]);
         set_exception_handler([$this, self::EXCEPTION_HANDLER]);
         register_shutdown_function([$this, self::SHUTDOWN_HANDLER]);
@@ -234,49 +204,6 @@ class BooBoo
     }
 
     /**
-     * Adds a new formatter to the formatter stack.
-     *
-     * @param \League\BooBoo\Formatter\FormatterInterface $formatter
-     * @return $this
-     */
-    public function pushFormatter(FormatterInterface $formatter)
-    {
-        $this->formatterStack[] = $formatter;
-        return $this;
-    }
-
-    /**
-     * Pops a formatter off the bottom of the formatter stack.
-     *
-     * @return \League\BooBoo\Formatter\FormatterInterface|null
-     */
-    public function popFormatter()
-    {
-        return array_pop($this->formatterStack);
-    }
-
-    /**
-     * Gets all formatters currently registered.
-     *
-     * @return array
-     */
-    public function getFormatters()
-    {
-        return $this->formatterStack;
-    }
-
-    /**
-     * Clears all formatters currently registered.
-     *
-     * @return $this
-     */
-    public function clearFormatters()
-    {
-        $this->formatterStack = [];
-        return $this;
-    }
-
-    /**
      * Runs all the handlers registered, and returns the exception provided.
      *
      * @param \Exception $e
@@ -293,27 +220,6 @@ class BooBoo
         }
 
         return $e;
-    }
-
-    /**
-     * @param \Exception $e
-     *
-     * @return mixed
-     */
-    protected function runFormatters($e)
-    {
-        if ($e instanceof ErrorException) {
-            $severity = $e->getSeverity();
-        } else {
-            $severity = E_ERROR;
-        }
-
-        /** @var \League\BooBoo\Formatter\FormatterInterface $formatter */
-        foreach (array_reverse($this->formatterStack) as $formatter) {
-            if ($severity & $formatter->getErrorLimit()) {
-                return $formatter->format($e);
-            }
-        }
     }
 
     /**
@@ -335,16 +241,7 @@ class BooBoo
     {
         restore_error_handler();
         restore_exception_handler();
-    }
-
-    /**
-     * Registers an error page for handling uncaught exceptions in production.
-     *
-     * @param \League\BooBoo\Formatter\FormatterInterface $errorPage
-     */
-    public function setErrorPageFormatter(FormatterInterface $errorPage)
-    {
-        $this->errorPage = $errorPage;
+        return $this;
     }
 
     /**
